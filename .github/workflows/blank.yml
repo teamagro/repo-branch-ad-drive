@@ -1,0 +1,82 @@
+# This is a workflow for cloning template branch in new branch
+
+name: Clone Template branch into new branch
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  # push:
+  #   branches: [ "main" ]
+  # pull_request:
+  #   branches: [ "main" ]
+
+  workflow_dispatch:
+    inputs:
+      username:
+        required: true
+        description: 'username used for branch name'
+        type: string
+      folder_url:
+        required: true
+        type: string
+
+jobs:
+  create-branch:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Set Env variables
+        run: |
+          echo "TARGET_REPO=teamagro/aem-boilerplate" >> $GITHUB_ENV
+          echo "NEW_BRANCH=${{ github.event.inputs.username }}" >> $GITHUB_ENV
+          echo "FOLDER_URL=${{ github.event.inputs.folder_url }}" >> $GITHUB_ENV
+
+      - name: Print Google Drive folder url
+        run: |
+          echo "Google Drive folder for $NEW_BRANCH is: $FOLDER_URL"
+          
+      # - name: Wait for new repo availability
+      #   run: sleep 10
+        
+      - name: Clone target repo and create new branch
+        run:  |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git clone https://x-access-token:${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/$TARGET_REPO.git
+          cd $(basename $TARGET_REPO)
+          git checkout -b $NEW_BRANCH
+
+      - name: Overwrite fstab.yaml with Google Drive folder url
+        run: |
+          cd $(basename $TARGET_REPO)
+          echo "mountpoints:" > fstab.yaml
+          echo "  /: $FOLDER_URL" >> fstab.yaml
+          git add fstab.yaml
+          mkdir -p .devcontainer
+          cat <<EOF > .devcontainer/devcontainer.json
+          {
+            "name": "Python Workspace",
+            "image": "mcr.microsoft.com/devcontainers/python:3.11",
+            "postCreateCommand": "pip install -r requirements.txt",
+            "features": {},
+            "customizations": {
+              "vscode": {
+                "extensions": [
+                  "ms-python.python",
+                  "ms-toolsai.jupyter"
+                ]
+              }
+            }
+          }
+          EOF
+          echo "requests" > .devcontainer/requirements.txt
+          echo "flask" >> .devcontainer/requirements.txt
+          git add .devcontainer
+          git commit -m "Reset fstab.yaml with new Google Drive folder url and set up workspace"
+          git push origin $NEW_BRANCH
+
+      - name: Output Codespace link
+        run: |
+          echo " Codespace Ready!"
+          echo "Open new branch and click 'Code > Codespaces > Create codespace on this branch':"
+          echo "https://github.com/$TARGET_REPO/tree/$NEW_BRANCH"
