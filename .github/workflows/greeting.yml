@@ -2,7 +2,7 @@ name:greeting
 on:push
 jobs:
   greet:
-    run on:ubuntu-latest
+    runs-on:ubuntu-latest
     steps:
       name:"great user"
       run:echo "hello r"
