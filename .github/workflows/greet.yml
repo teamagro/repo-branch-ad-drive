@@ -8,3 +8,8 @@ jobs:
         run: |
           echo "hello "
           echo "hello 2"
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: run python
+        run: python check.py
