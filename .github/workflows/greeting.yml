@@ -1,9 +1,8 @@
-name:greeting
-on:push
+name: greeting
+on: push
 jobs:
   greet:
-    runs-on:ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
-      - name:great user
-        run:echo "hello r"
-      
+      - name: great user
+        run: echo "hello r"
