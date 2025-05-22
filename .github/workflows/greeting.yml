@@ -1,8 +1,0 @@
-name: greeting
-on: push
-jobs:
-  greet:
-    runs-on: ubuntu-latest
-    steps:
-      - name: great user
-        run: echo "hello r"
