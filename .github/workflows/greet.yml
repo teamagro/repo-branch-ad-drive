@@ -5,6 +5,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: greet
-         run |
+        run: |
           echo "hello "
           echo "hello 2"
