@@ -19,6 +19,10 @@ on:
       folder_url:
         required: true
         type: string
+      target_repo_name:
+        required: true
+        description: 'Target repository name'
+        type: string
 
 jobs:
   create-branch:
@@ -27,7 +31,7 @@ jobs:
     steps:
       - name: Set Env variables
         run: |
-          echo "TARGET_REPO=teamagro/aem-boilerplate" >> $GITHUB_ENV
+          echo "TARGET_REPO=teamagro/${{ github.event.inputs.target_repo_name }}" >> $GITHUB_ENV
           echo "NEW_BRANCH=${{ github.event.inputs.username }}" >> $GITHUB_ENV
           echo "FOLDER_URL=${{ github.event.inputs.folder_url }}" >> $GITHUB_ENV
 
