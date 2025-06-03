@@ -1,0 +1,47 @@
+# This is a workflow for cloing template repo in new repo
+
+name: Clone Template into new repo
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  # push:
+  #   branches: [ "main" ]
+  # pull_request:
+  #   branches: [ "main" ]
+
+  workflow_dispatch:
+    inputs:
+      repo_name:
+        required: true
+        description: 'New Github repo name'
+
+jobs:
+  copy-template:
+    runs-on: ubuntu-latest
+    steps:
+      # Checks-out template repository 
+      - name: Checkout Template repo
+        uses: actions/checkout@v4
+        with:
+          repository: arnab-tcs-gthb/aem-boilerplate
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          path: template
+
+      # - name: Wait for new repo availability
+      #   run: sleep 10
+        
+      # Push to new Repo
+      - name: Push to New Repo
+        run:  |
+          cd template
+          rm -rf .git
+          git init
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git remote add origin https://x-access-token:${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/arnab-tcs-gthb/${{ github.event.inputs.repo_name }}.git
+          git add .
+          git commit -m "Initialize from template"
+          git branch -M main
+          git push -u origin main
+      
