@@ -1,54 +1,83 @@
-# This is a workflow for cloing template repo in new repo
+name: Create New Repo from Template
 
-name: Clone Template into new repo
-
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
-  # push:
-  #   branches: [ "main" ]
-  # pull_request:
-  #   branches: [ "main" ]
-
   workflow_dispatch:
     inputs:
-      repo_name:
+      project_name:
         required: true
-        description: 'New Github repo name'
+        description: "Project name for repo creation"
+        type: string
       folder_url:
         required: true
         type: string
       target_repo_name:
         required: true
-        description: 'Target repository name'
+        description: "Template repository name"
         type: string
 
 jobs:
-  copy-template:
+  create-repo:
     runs-on: ubuntu-latest
+    
     steps:
-      # Checks-out template repository 
-      - name: Checkout Template repo
-        uses: actions/checkout@v4
-        with:
-          repository: arnab-tcs-gthb/aem-boilerplate
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          path: template
+      - name: Set Env Variables
+        run: |
+          echo "TEMPLATE_REPO=teamagro/${{ github.event.inputs.target_repo_name }}" >> $GITHUB_ENV
+          echo "NEW_REPO=teamagro/${{ github.event.inputs.project_name }}" >> $GITHUB_ENV
+          echo "FOLDER_URL=${{ github.event.inputs.folder_url }}" >> $GITHUB_ENV
 
-      # - name: Wait for new repo availability
-      #   run: sleep 10
-        
-      # Push to new Repo
-      - name: Push to New Repo
-        run:  |
-          cd template
-          rm -rf .git
-          git init
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git remote add origin https://x-access-token:${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/arnab-tcs-gthb/${{ github.event.inputs.repo_name }}.git
-          git add .
-          git commit -m "Initialize from template"
-          git branch -M main
-          git push -u origin main
-      
+      - name: Print Google Drive folder URL
+        run: |
+          echo "Google Drive folder for $NEW_REPO is: $FOLDER_URL"
+
+      - name: Create New Repository from Template
+        run: |
+          curl -X POST -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN }}" \
+          -H "Accept: application/vnd.github+json" \
+          https://api.github.com/repos/$TEMPLATE_REPO/generate \
+          -d '{
+            "owner": "teamagro",
+            "name": "${{ github.event.inputs.project_name }}",
+            "private": false
+          }'
+
+      - name: Clone New Repo
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git clone https://x-access-token:${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/teamagro/${{ github.event.inputs.project_name }}.git
+          cd $(basename $NEW_REPO)
+
+      - name: Overwrite fstab.yaml with Google Drive folder URL
+        run: |
+          cd $(basename $NEW_REPO)
+          echo "mountpoints:" > fstab.yaml
+          echo "  /: $FOLDER_URL" >> fstab.yaml
+          git add fstab.yaml
+          mkdir -p .devcontainer
+          cat <<EOF > .devcontainer/devcontainer.json
+          {
+            "name": "Python Workspace",
+            "image": "mcr.microsoft.com/devcontainers/python:3.11",
+            "postCreateCommand": "pip install -r requirements.txt",
+            "features": {},
+            "customizations": {
+              "vscode": {
+                "extensions": [
+                  "ms-python.python",
+                  "ms-toolsai.jupyter"
+                ]
+              }
+            }
+          }
+          EOF
+          echo "requests" > .devcontainer/requirements.txt
+          echo "flask" >> .devcontainer/requirements.txt
+          git add .devcontainer
+          git commit -m "Set up new repo with Google Drive folder"
+          git push origin main
+
+      - name: Output Repository Link
+        run: |
+          echo "New Repository Ready!"
+          echo "Open the new repo here: https://github.com/teamagro/${{ github.event.inputs.project_name }}"
